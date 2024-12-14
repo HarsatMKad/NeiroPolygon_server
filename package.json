@@ -17,11 +17,14 @@
     "archiver": "^7.0.1",
     "body-parser": "^1.20.3",
     "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
     "express": "^4.21.1",
+    "express-validator": "^7.2.0",
     "geojson2shape": "^0.2.4",
     "geojson2shp": "^0.5.0",
     "jszip": "^3.10.1",
     "mongodb": "^6.11.0",
-    "ogr2ogr": "^5.1.0"
+    "ogr2ogr": "^5.1.0",
+    "pg": "^8.13.1"
   }
 }

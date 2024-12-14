@@ -1,16 +1,41 @@
 const express = require("express");
 const app = express();
-const cors = require("cors");
+const routes = require("./routes");
 const bodyParser = require("body-parser");
-const port = process.env.PORT || 5000;
+const cors = require("cors");
+const path = require("path");
+const pool = require("./config/db");
 const JSZip = require("jszip");
 const shpwrite = require("@mapbox/shp-write");
 
 app.use(cors());
 app.use(bodyParser.json());
+app.use(express.json());
 
-app.get("/", (req, res) => {
-  res.send("hello from server");
+app.post("/users", routes);
+app.use("/api", routes);
+
+app.get("/substrates/:userId", async (req, res) => {
+  const { userId } = req.params;
+  const { index } = req.query;
+
+  const result = await pool.query(
+    "SELECT image_link FROM custom_substrates WHERE user_id = $1",
+    [userId]
+  );
+
+  if (!result.rows.length) {
+    return res.status(404).json({ message: "Изображение не найдено" });
+  }
+
+  if (!index) {
+    return res.status(404).json({ message: "Неверно указан индекс" });
+  }
+
+  const imgPath = result.rows[index].image_link;
+  const fp = path.join(__dirname, imgPath);
+
+  res.sendFile(fp);
 });
 
 app.get("/api/data", (req, res) => {
@@ -43,17 +68,6 @@ app.get("/api/data", (req, res) => {
   res.json(data);
 });
 
-app.post("/api/data", (req, res) => {
-  const { name, email } = req.body;
-
-  console.log("Received data:", name, email);
-
-  res.status(200).json({
-    message: "Data received successfully",
-  });
-});
-
-// Маршрут для генерации Shape-файлов и отправки их клиенту
 app.get("/api/data/shapefile", async (req, res) => {
   try {
     var points = [
@@ -110,6 +124,12 @@ app.get("/api/data/shapefile", async (req, res) => {
   }
 });
 
-app.listen(port, () => {
-  console.log("server is running on http://localhost:" + port);
+app.use((err, req, res, next) => {
+  console.error(err.stack);
+  res.status(500).send("Something broke!");
+});
+
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
 });
