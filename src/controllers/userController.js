@@ -1,4 +1,18 @@
 const pool = require("../config/db");
+const multer = require("multer");
+const path = require("path");
+const fs = require("fs").promises;
+
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, "usersImages/");
+  },
+  filename: function (req, file, cb) {
+    cb(null, `${Date.now()}-${file.originalname}`);
+  },
+});
+
+const upload = multer({ storage: storage });
 
 exports.getUsers = async (req, res) => {
   try {
@@ -86,16 +100,64 @@ exports.getImageArrayForUser = async (req, res) => {
   const { id } = req.params;
 
   try {
-    // Подсчитываем количество записей в таблице custom_substrates для данного user_id
     const result = await pool.query(
       "SELECT id FROM custom_substrates WHERE user_id = $1",
       [id]
     );
     const imageIds = result.rows.map((row) => row.id);
 
-    // Возвращаем количество изображений
     res.status(200).json(imageIds);
   } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+exports.uploadImage = async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    upload.single("image")(req, res, async (err) => {
+      if (err) {
+        console.error(err);
+        return res.status(400).json({ error: "Ошибка при загрузке файла" });
+      }
+
+      const { filename } = req.file;
+
+      const result = await pool.query(
+        "INSERT INTO custom_substrates (user_id, image_link) VALUES ($1, $2) RETURNING *",
+        [id, filename]
+      );
+
+      res.status(201).json(result.rows[0]);
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+exports.deleteImage = async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    const result = await pool.query(
+      "SELECT image_link FROM custom_substrates WHERE id = $1",
+      [id]
+    );
+
+    if (!result.rows.length) {
+      return res.status(404).json({ message: "Изображение не найдено" });
+    }
+
+    const imgPath = result.rows[0].image_link;
+    const fwq = path.join(__dirname, "../../usersImages/", imgPath);
+
+    await fs.unlink(fwq);
+    await pool.query("DELETE FROM custom_substrates WHERE id = $1", [id]);
+
+    res.status(200).json({ message: "Изображение удалено" });
+  } catch (err) {
+    console.log(err);
     res.status(500).json({ error: err.message });
   }
 };

@@ -10,5 +10,7 @@ router.delete("/users/:id", userController.deleteUser);
 
 router.get("/substrates/:id", userController.getImagesUser);
 router.get("/image-ids/:id", userController.getImageArrayForUser);
+router.post("/upload-image/:id", userController.uploadImage);
+router.delete("/images/:id", userController.deleteImage);
 
 module.exports = router;

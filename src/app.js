@@ -15,25 +15,24 @@ app.use(express.json());
 app.post("/users", routes);
 app.use("/api", routes);
 
-app.get("/substrates/:userId", async (req, res) => {
-  const { userId } = req.params;
-  const { index } = req.query;
+app.get("/substrates/:id", async (req, res) => {
+  const { id } = req.params;
 
   const result = await pool.query(
-    "SELECT image_link FROM custom_substrates WHERE user_id = $1",
-    [userId]
+    "SELECT image_link FROM custom_substrates WHERE id = $1",
+    [id]
   );
 
   if (!result.rows.length) {
     return res.status(404).json({ message: "Изображение не найдено" });
   }
 
-  if (!index) {
+  if (!id) {
     return res.status(404).json({ message: "Неверно указан индекс" });
   }
 
-  const imgPath = result.rows[index].image_link;
-  const fp = path.join(__dirname, imgPath);
+  const imgPath = result.rows[0].image_link;
+  const fp = path.join(__dirname, "../usersImages/", imgPath);
 
   res.sendFile(fp);
 });
